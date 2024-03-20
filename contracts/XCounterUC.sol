@@ -9,6 +9,8 @@ contract XCounterUC is UniversalChanIbcApp {
     uint64 public counter;
     mapping(uint64 => address) public counterMap;
 
+    event SecretReveal(string secret);
+
     constructor(address _middleware) UniversalChanIbcApp(_middleware) {}
 
     // application specific logic
@@ -30,7 +32,7 @@ contract XCounterUC is UniversalChanIbcApp {
      */
     function sendUniversalPacket(address destPortAddr, bytes32 channelId, uint64 timeoutSeconds) external {
         increment();
-        bytes memory payload = abi.encode(msg.sender, counter);
+        bytes memory payload = abi.encode(msg.sender, "crossChainQuery");
 
         uint64 timeoutTimestamp = uint64((block.timestamp + timeoutSeconds) * 1000000000);
 
@@ -78,11 +80,8 @@ contract XCounterUC is UniversalChanIbcApp {
         ackPackets.push(UcAckWithChannel(channelId, packet, ack));
 
         // decode the counter from the ack packet
-        (uint64 _counter) = abi.decode(ack.data, (uint64));
-
-        if (_counter != counter) {
-            resetCounter();
-        }
+        (string memory secret) = abi.decode(ack.data, (string));
+        emit SecretReveal(secret);
     }
 
     /**
